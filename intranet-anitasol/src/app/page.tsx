@@ -7,18 +7,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  
-  // Traemos la función login de tu AuthContext
   const { login } = useAuth();
 
   const handleLogin = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (email === "admin@anitasol.cl" && password === "123456") {
-      // Ahora sí, guardamos en localStorage usando el contexto
+    if (email === "admin@gmail.com" && password === "123456") {
       login(email);
       router.push("/insumos");
     } else {
-      alert("Error: Usa admin@anitasol.cl y clave 123456");
+      alert("ERROR LOS DATOS INGRESADOS SON INCORRECTOS");
     }
   };
 
