@@ -1,50 +1,68 @@
 "use client";
-import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
-  const router = useRouter();
+  const [error, setError] = useState("");
   const { login } = useAuth();
 
-  const handleLogin = (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === "admin@gmail.com" && password === "123456") {
-      login(email);
-      router.push("/insumos");
+
+    if (usuario === "ADMIN" && password === "ADMIN1234") {
+      login(usuario);
     } else {
-      alert("ERROR LOS DATOS INGRESADOS SON INCORRECTOS");
+      setError("Usuario o contraseña incorrectos");
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-900">
-      <main className="w-full max-w-md bg-zinc-800 p-8 rounded-xl shadow-2xl border border-zinc-700">
-        <h1 className="text-3xl font-bold text-center mb-8 text-white">Intranet AnitaSol</h1>
-        <form onSubmit={handleLogin} className="flex flex-col gap-5">
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">Correo</label>
-            <input
-              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">Clave</label>
-            <input
-              type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 bg-zinc-900 border border-zinc-600 rounded-lg text-white"
-              required
-            />
-          </div>
-          <button type="submit" className="w-full mt-4 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">
-            Ingresar
-          </button>
-        </form>
+    <>
+      <header className="header-principal">
+        <div className="logo">
+          <a href="#">CAFETERIA ANITASOL</a>
+        </div>
+      </header>
+
+      <main className="main main-login">
+        <section className="tarjeta-sesion">
+          <h2>Iniciar Sesión</h2>
+          <form onSubmit={handleLogin} className="formulario-sesion">
+            <div className="grupo-input">
+              <label htmlFor="usuario">Usuario</label>
+              <input 
+                type="text" 
+                id="usuario" 
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)} 
+                placeholder="Tu nombre de usuario" 
+                required 
+              />
+            </div>
+            <div className="grupo-input">
+              <label htmlFor="password">Contraseña</label>
+              <input 
+                type="password" 
+                id="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)} 
+                placeholder="Tu contraseña" 
+                required 
+              />
+            </div>
+            {error && <p className="sesion-error-general">{error}</p>}
+            <button type="submit" className="btn-enviar">Iniciar Sesión</button>
+          </form>
+        </section>
       </main>
-    </div>
+
+      <footer className="footer">
+        <div className="footer-derechos">
+            <p>&copy; 2026 Cafeteria Anitasol. Todos los derechos reservados.</p>
+        </div>
+      </footer>
+    </>
   );
 }
