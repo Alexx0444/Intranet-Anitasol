@@ -1,55 +1,56 @@
-"use client";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/navigation";
+'use client'
 
-interface User {
-  username: string;
-}
+// maneja la sesion del usuario en toda la app usando contexto global
+
+import React, { createContext, useContext, useState, useCallback } from 'react'
+import { UsuarioSesion } from '../types'
 
 interface AuthContextType {
-  user: User | null;
-  cargando: boolean;
-  login: (username: string) => void;
-  logout: () => void;
+    usuario: UsuarioSesion | null
+    login: (nombre: string, rol: string) => void
+    logout: () => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const SESION_KEY = 'anitasol_sesion'
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    const session = localStorage.getItem("anitasol_session");
-    if (session) {
-      setUser(JSON.parse(session));
+// lee la sesion guardada en localStorage antes del primer render pa no perder la sesion al recargar
+function leerSesionInicial(): UsuarioSesion | null {
+    if (typeof window === 'undefined') return null
+    try {
+        const raw = localStorage.getItem(SESION_KEY)
+        return raw ? (JSON.parse(raw) as UsuarioSesion) : null
+    } catch {
+        return null
     }
-    setCargando(false);
-  }, []);
-
-  const login = (username: string) => {
-    const newUser = { username };
-    setUser(newUser);
-    localStorage.setItem("anitasol_session", JSON.stringify(newUser));
-    router.push("/insumos");
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("anitasol_session");
-    router.push("/");
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, cargando, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
 }
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth debe usarse dentro de un AuthProvider");
-  return context;
-};
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    // inicializacion lazy pa leer localStorage una sola vez sin necesitar useEffect
+    const [usuario, setUsuario] = useState<UsuarioSesion | null>(leerSesionInicial)
+
+    // guarda la sesion en localStorage y actualiza el estado global
+    const login = useCallback((nombre: string, rol: string) => {
+        const sesion: UsuarioSesion = { nombre, rol }
+        localStorage.setItem(SESION_KEY, JSON.stringify(sesion))
+        setUsuario(sesion)
+    }, [])
+
+    // borra la sesion de localStorage y limpia el estado
+    const logout = useCallback(() => {
+        localStorage.removeItem(SESION_KEY)
+        setUsuario(null)
+    }, [])
+
+    return (
+        <AuthContext.Provider value={{ usuario, login, logout }}>
+            {children}
+        </AuthContext.Provider>
+    )
+}
+
+export const useAuth = (): AuthContextType => {
+    const ctx = useContext(AuthContext)
+    if (!ctx) throw new Error('useAuth debe usarse dentro de AuthProvider')
+    return ctx
+}
