@@ -8,6 +8,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  cargando: boolean;
   login: (username: string) => void;
   logout: () => void;
 }
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [cargando, setCargando] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session) {
       setUser(JSON.parse(session));
     }
+    setCargando(false);
   }, []);
 
   const login = (username: string) => {
@@ -39,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, cargando, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
