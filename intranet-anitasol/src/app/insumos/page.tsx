@@ -1,35 +1,33 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 interface Insumo {
-  id: number;
+  id: string;
   nombre: string;
-  precio: string;
+  precio: number;
 }
 
 export default function InsumosPage() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("");
-  
-  const router = useRouter();
-  const { logout } = useAuth();
 
   useEffect(() => {
-    const guardados = localStorage.getItem("insumos_data");
-    if (guardados) {
-      try {
-        setInsumos(JSON.parse(guardados));
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    if (!user) router.push("/");
+  }, [user, router]);
+
+  useEffect(() => {
+    const guardados = localStorage.getItem("insumos_anitasol");
+    if (guardados) setInsumos(JSON.parse(guardados));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("insumos_data", JSON.stringify(insumos));
+    localStorage.setItem("insumos_anitasol", JSON.stringify(insumos));
   }, [insumos]);
 
   const agregarInsumo = (e: React.FormEvent) => {
@@ -37,9 +35,9 @@ export default function InsumosPage() {
     if (!nombre.trim() || !precio.trim()) return;
     
     const nuevoInsumo: Insumo = { 
-      id: Date.now(), 
+      id: Date.now().toString(), 
       nombre, 
-      precio 
+      precio: Number(precio) 
     };
     
     setInsumos([...insumos, nuevoInsumo]);
@@ -47,69 +45,85 @@ export default function InsumosPage() {
     setPrecio("");
   };
 
-  const eliminarInsumo = (id: number) => {
+  const eliminarInsumo = (id: string) => {
     setInsumos(insumos.filter((item) => item.id !== id));
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push("/");
-  };
+  if (!user) return null; 
 
   return (
-    <div className="p-8 bg-zinc-900 min-h-screen text-white">
-      <button 
-        onClick={handleLogout}
-        className="bg-zinc-700 hover:bg-red-900 text-white px-4 py-2 rounded mb-4"
-      >
-        Cerrar Sesión
-      </button>
+    <>
+      <header className="header-principal">
+        <div className="logo">
+            <a href="#">CAFETERIA ANITASOL</a>
+        </div>
+        <div className="header-controles">
+            <button onClick={logout} className="btn-cancelar" style={{padding: '8px 16px', fontSize: '0.9rem'}}>
+                Cerrar Sesión
+            </button>
+        </div>
+      </header>
 
-      <h1 className="text-3xl font-bold mb-6">Gestión de Insumos</h1>
-      
-      <form onSubmit={agregarInsumo} className="bg-zinc-800 p-6 rounded-xl border border-zinc-700 mb-8 flex gap-4">
-        <input 
-          placeholder="Nombre del insumo" 
-          value={nombre} 
-          onChange={(e) => setNombre(e.target.value)} 
-          className="p-2 bg-zinc-900 border border-zinc-600 rounded flex-1" 
-          required 
-        />
-        <input 
-          placeholder="Precio" 
-          type="number" 
-          min="0"
-          value={precio} 
-          onChange={(e) => setPrecio(e.target.value)} 
-          className="p-2 bg-zinc-900 border border-zinc-600 rounded w-32" 
-          required 
-        />
-        <button className="bg-blue-600 px-4 py-2 rounded font-bold hover:bg-blue-700 transition">
-          Agregar
-        </button>
-      </form>
+      {}
+      <main className="main">
+        {/* FORMULARIO */}
+        <section className="seccion-contacto">
+          <h2 className="panel-titulo">Agregar Nuevo Insumo</h2>
+          <form onSubmit={agregarInsumo} className="formulario-contacto">
+            <div className="grupo-input">
+              <label>Nombre del Insumo</label>
+              <input 
+                type="text" 
+                value={nombre} 
+                onChange={(e) => setNombre(e.target.value)} 
+                placeholder="Ej: Harina"
+                required 
+              />
+            </div>
+            <div className="grupo-input">
+              <label>Precio ($)</label>
+              <input 
+                type="number" 
+                min="0"
+                value={precio} 
+                onChange={(e) => setPrecio(e.target.value)} 
+                placeholder="Ej: 1500"
+                required 
+              />
+            </div>
+            <button type="submit" className="btn-enviar">Guardar Insumo</button>
+          </form>
+        </section>
 
-      <div className="bg-zinc-800 p-6 rounded-xl border border-zinc-700">
-        <h2 className="text-xl font-semibold mb-4">Lista de Insumos</h2>
-        
-        {insumos.length === 0 ? (
-          <p className="text-zinc-500 italic">No hay insumos agregados todavía...</p>
-        ) : (
-          <ul className="space-y-2">
-            {insumos.map((i) => (
-              <li key={i.id} className="border-b border-zinc-700 py-3 flex justify-between items-center">
-                <span>{i.nombre} - ${i.precio}</span>
-                <button 
-                  onClick={() => eliminarInsumo(i.id)}
-                  className="bg-red-600 px-3 py-1 rounded text-sm hover:bg-red-700 transition"
-                >
-                  Eliminar
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+        {/* LISTADO */}
+        <section className="panel-seccion">
+          <h2 className="panel-titulo"><i className="fa-solid fa-box"></i> Inventario de Insumos</h2>
+          
+          <div className="carrito-productos">
+            {insumos.length === 0 ? (
+              <p style={{fontStyle: 'italic', color: 'gray'}}>No hay insumos agregados todavía...</p>
+            ) : (
+              insumos.map((i) => (
+                <div key={i.id} className="carrito-item">
+                  <div className="carrito-item-info">
+                    <p style={{fontSize: '1.1rem'}}>{i.nombre}</p>
+                    <p>${i.precio}</p>
+                  </div>
+                  <div style={{display: 'flex', gap: '10px'}}>
+                    {}
+                    <Link href={`/insumos/${i.id}`}>
+                      <button className="btn-enviar" style={{padding: '6px 12px'}}>Ver Detalle</button>
+                    </Link>
+                    <button onClick={() => eliminarInsumo(i.id)} className="btn-eliminar">
+                      X Borrar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      </main>
+    </>
   );
 }
