@@ -22,6 +22,11 @@ export default function InsumosPage() {
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [primeraCarga, setPrimeraCarga] = useState(true);
 
+  // Estados de búsqueda y edición
+  const [busqueda, setBusqueda] = useState("");
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+
+  // Estados del formulario
   const [nombre, setNombre] = useState("");
   const [precio, setPrecio] = useState("");
   const [cantidad, setCantidad] = useState("");
@@ -57,23 +62,7 @@ export default function InsumosPage() {
     }
   };
 
-  const agregarInsumo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nombre.trim() || !precio.trim() || !cantidad.trim()) return;
-    
-    const nuevoInsumo: Insumo = { 
-      id: Date.now().toString(), 
-      nombre, 
-      precio: Number(precio),
-      cantidad: Number(cantidad),
-      ingredientes,
-      calorias: Number(calorias),
-      esSaludable: esSaludable === "si",
-      imagen
-    };
-    
-    setInsumos([...insumos, nuevoInsumo]);
-    
+  const limpiarFormulario = () => {
     setNombre("");
     setPrecio("");
     setCantidad("");
@@ -81,11 +70,59 @@ export default function InsumosPage() {
     setCalorias("");
     setEsSaludable("si");
     setImagen("");
+    setEditandoId(null);
+  };
+
+  // Crear o actualizar registro
+  const guardarInsumo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre.trim() || !precio.toString().trim() || !cantidad.toString().trim()) return;
+    
+    if (editandoId) {
+      const insumosActualizados = insumos.map(i => 
+        i.id === editandoId 
+          ? { ...i, nombre, precio: Number(precio), cantidad: Number(cantidad), ingredientes, calorias: Number(calorias), esSaludable: esSaludable === "si", imagen }
+          : i
+      );
+      setInsumos(insumosActualizados);
+    } else {
+      const nuevoInsumo: Insumo = { 
+        id: Date.now().toString(), 
+        nombre, 
+        precio: Number(precio),
+        cantidad: Number(cantidad),
+        ingredientes,
+        calorias: Number(calorias),
+        esSaludable: esSaludable === "si",
+        imagen
+      };
+      setInsumos([...insumos, nuevoInsumo]);
+    }
+    
+    limpiarFormulario();
+  };
+
+  // Cargar datos al formulario
+  const iniciarEdicion = (insumo: Insumo) => {
+    setEditandoId(insumo.id);
+    setNombre(insumo.nombre);
+    setPrecio(insumo.precio.toString());
+    setCantidad(insumo.cantidad.toString());
+    setIngredientes(insumo.ingredientes);
+    setCalorias(insumo.calorias.toString());
+    setEsSaludable(insumo.esSaludable ? "si" : "no");
+    setImagen(insumo.imagen);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const eliminarInsumo = (id: string) => {
     setInsumos(insumos.filter((item) => item.id !== id));
   };
+
+  // Filtro de listado
+  const insumosFiltrados = insumos.filter(i => 
+    i.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
 
   if (cargando) return <p style={{textAlign: "center", padding: "50px"}}>Cargando...</p>;
   if (!user) return null; 
@@ -105,8 +142,10 @@ export default function InsumosPage() {
 
       <main className="main">
         <section className="seccion-contacto" style={{ maxWidth: '800px' }}>
-          <h2 className="panel-titulo">Agregar Nuevo Insumo / Producto</h2>
-          <form onSubmit={agregarInsumo} className="formulario-contacto">
+          <h2 className="panel-titulo">
+            {editandoId ? "Editar Insumo" : "Agregar Nuevo Insumo"}
+          </h2>
+          <form onSubmit={guardarInsumo} className="formulario-contacto">
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
               <div className="grupo-input">
@@ -141,29 +180,57 @@ export default function InsumosPage() {
                 </select>
               </div>
               <div className="grupo-input">
-                <label>Imagen</label>
-                <input type="file" accept="image/*" onChange={handleImagen} required />
+                <label>Imagen (Opcional al editar)</label>
+                <input type="file" accept="image/*" onChange={handleImagen} required={!editandoId} />
+                {editandoId && imagen && <p style={{fontSize: '0.8rem', color: 'green'}}>Imagen actual cargada</p>}
               </div>
             </div>
 
-            <button type="submit" className="btn-enviar" style={{ marginTop: '10px' }}>Guardar Insumo</button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button type="submit" className="btn-enviar">
+                {editandoId ? "Guardar Cambios" : "Guardar Insumo"}
+              </button>
+              {editandoId && (
+                <button type="button" onClick={limpiarFormulario} className="btn-cancelar">
+                  Cancelar
+                </button>
+              )}
+            </div>
           </form>
         </section>
 
         <section className="panel-seccion">
-          <h2 className="panel-titulo"><i className="fa-solid fa-box"></i> Inventario</h2>
-          <div className="carrito-productos">
-            {insumos.length === 0 ? (
-              <p style={{fontStyle: 'italic', color: 'gray'}}>No hay insumos agregados todavía...</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+            <h2 className="panel-titulo" style={{ marginBottom: 0 }}><i className="fa-solid fa-box"></i> Inventario</h2>
+            
+            <div className="grupo-input" style={{ flex: '1', maxWidth: '300px' }}>
+              <input 
+                type="text" 
+                placeholder="Buscar insumo por nombre..." 
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+          
+          <div className="carrito-productos" style={{ marginTop: '20px' }}>
+            {insumosFiltrados.length === 0 ? (
+              <p style={{fontStyle: 'italic', color: 'gray'}}>No se encontraron insumos...</p>
             ) : (
-              insumos.map((i) => (
+              insumosFiltrados.map((i) => (
                 <div key={i.id} className="carrito-item">
                   {i.imagen && <img src={i.imagen} alt={i.nombre} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} />}
                   <div className="carrito-item-info" style={{ flex: 1, marginLeft: '15px' }}>
                     <p style={{fontSize: '1.1rem'}}>{i.nombre}</p>
                     <p>${i.precio} | Stock: {i.cantidad}</p>
                   </div>
-                  <div style={{display: 'flex', gap: '10px'}}>
+                  <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end'}}>
+                    
+                    <button onClick={() => iniciarEdicion(i)} className="btn-enviar" style={{padding: '6px 12px', backgroundColor: '#f1c40f'}}>
+                      Editar
+                    </button>
+
                     <Link href={`/insumos/${i.id}`}>
                       <button className="btn-enviar" style={{padding: '6px 12px'}}>Ver Detalle</button>
                     </Link>
